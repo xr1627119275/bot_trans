@@ -39,7 +39,21 @@ python main.py
 
 ## 部署
 
+### Railway / Render / Koyeb
 设置环境变量 `BOT_TOKEN` 即可。
 
-支持 Railway / Render / Koyeb 等平台。
+### Cloudflare Workers
+
+```bash
+cd cloudflare-worker
+npm install -g wrangler
+wrangler login
+wrangler secret put BOT_TOKEN
+wrangler deploy
+```
+
+部署后设置 Webhook：
+```
+https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://your-worker.workers.dev
+```
 

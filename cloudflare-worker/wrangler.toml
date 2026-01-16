@@ -1,0 +1,7 @@
+name = "telegram-translate-bot"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+# BOT_TOKEN 通过 wrangler secret 设置，不要写在这里
+
