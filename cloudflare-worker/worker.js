@@ -1,13 +1,10 @@
 /**
  * Telegram 翻译机器人 - Cloudflare Workers 版本
  * 中文 ↔ 英文 自动互译
+ * 使用 KV 存储翻译开关状态
  */
 
-// 从环境变量获取 Bot Token
 const TRANSLATE_URL = 'https://translate.googleapis.com/translate_a/single';
-
-// 存储翻译开关状态 (使用 KV 存储，这里用内存模拟)
-const translateEnabled = new Map();
 
 /**
  * 检测是否主要是中文
@@ -60,9 +57,24 @@ async function sendMessage(botToken, chatId, text) {
 }
 
 /**
+ * 获取翻译状态 (从 KV)
+ */
+async function getTranslateStatus(kv, chatId) {
+  const status = await kv.get(`translate:${chatId}`);
+  return status === 'true';
+}
+
+/**
+ * 设置翻译状态 (到 KV)
+ */
+async function setTranslateStatus(kv, chatId, enabled) {
+  await kv.put(`translate:${chatId}`, enabled ? 'true' : 'false');
+}
+
+/**
  * 处理 Telegram 更新
  */
-async function handleUpdate(botToken, update) {
+async function handleUpdate(botToken, kv, update) {
   const message = update.message;
   if (!message || !message.text) return;
 
@@ -86,19 +98,20 @@ async function handleUpdate(botToken, update) {
   }
 
   if (text === '/on') {
-    translateEnabled.set(chatId, true);
+    await setTranslateStatus(kv, chatId, true);
     await sendMessage(botToken, chatId, '✅ 翻译功能已开启！');
     return;
   }
 
   if (text === '/off') {
-    translateEnabled.set(chatId, false);
+    await setTranslateStatus(kv, chatId, false);
     await sendMessage(botToken, chatId, '❌ 翻译功能已关闭。');
     return;
   }
 
   // 检查翻译是否开启
-  if (!translateEnabled.get(chatId)) return;
+  const isEnabled = await getTranslateStatus(kv, chatId);
+  if (!isEnabled) return;
 
   // 翻译消息
   const sourceLang = isMostlyChinese(text) ? 'zh-CN' : 'en';
@@ -118,11 +131,12 @@ async function handleUpdate(botToken, update) {
 export default {
   async fetch(request, env) {
     const botToken = env.BOT_TOKEN;
+    const kv = env.TRANSLATE_KV;
 
     if (request.method === 'POST') {
       try {
         const update = await request.json();
-        await handleUpdate(botToken, update);
+        await handleUpdate(botToken, kv, update);
       } catch (e) {
         console.error('处理更新错误:', e);
       }
@@ -131,4 +145,3 @@ export default {
     return new Response('OK', { status: 200 });
   }
 };
-

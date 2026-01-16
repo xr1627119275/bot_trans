@@ -46,10 +46,18 @@ python main.py
 
 ```bash
 cd cloudflare-worker
-npm install -g wrangler
+npm install -g wrangler@latest
 wrangler login
-wrangler secret put BOT_TOKEN
-wrangler deploy
+
+# 创建 KV 存储
+npx wrangler kv namespace create TRANSLATE_KV
+# 复制输出的 id 到 wrangler.toml
+
+# 设置 Token
+npx wrangler secret put BOT_TOKEN
+
+# 部署
+npx wrangler deploy
 ```
 
 部署后设置 Webhook：
